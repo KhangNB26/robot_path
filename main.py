@@ -7,13 +7,19 @@ Main runner:
 - Runs simple RL agent (Value Iteration) demo to compute policy (for small grids)
 """
 import yaml
+import os
 from env.gridworld import GridWorld
 from visualization.pygame_viz import animate_path
 from mdp.mdp_model import SimpleMDPModel
 from rl_agents.value_iteration import ValueIterationAgent
+from planners.bfs import bfs_grid
 from utils import set_seed
 
-def load_config(path="E:\CN_AI\FA2025\REL\config\config.yaml"):
+def load_config(path=None):
+    if path is None:
+        # Use config.yaml in the same directory structure
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        path = os.path.join(current_dir, "config", "config.yaml")
     with open(path,"r",encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     return cfg
@@ -53,6 +59,8 @@ def run_rl_demo(cfg):
         current_state = start_state
         path = [current_state[0]]
         rewards = []  # Track rewards
+        carried_items = [current_state[1]]  # Track items carried at each step
+        goal_states = [current_state[2]]  # Track goal states at each step
         steps = 0
         max_steps = cfg.get("max_steps", 500)
         
@@ -60,12 +68,47 @@ def run_rl_demo(cfg):
         sim_gw = gw.copy()
         
         while steps < max_steps:
+            # Check if we've collected all items and returned to start
             if mdp.is_terminal(current_state[2]) and current_state[0] == gw.start:
                 print("All items collected and returned to start.")
                 break
+            
+            # If all items collected but not at start, force navigation back to start
+            if mdp.is_terminal(current_state[2]) and current_state[0] != gw.start:
+                print(f"All items collected at {current_state[0]}. Navigating back to start...")
+                # Use BFS to find path back to start
+                return_path = bfs_grid(sim_gw.grid, current_state[0], gw.start)
+                if return_path and len(return_path) > 1:
+                    # Follow the path back to start
+                    for i in range(1, len(return_path)):
+                        from_pos = return_path[i-1]
+                        to_pos = return_path[i]
+                        action = (to_pos[0] - from_pos[0], to_pos[1] - from_pos[1])
+                        
+                        # Update state
+                        next_state, reward = mdp.step(current_state, action)
+                        rewards.append(reward)
+                        
+                        pos, carried, goals = next_state
+                        for idx, goal_pos in enumerate(mdp.goal_positions):
+                            if goal_pos in sim_gw.goal_cells:
+                                sim_gw.goal_cells[goal_pos] = goals[idx]
+                        
+                        current_state = next_state
+                        path.append(current_state[0])
+                        carried_items.append(current_state[1])
+                        goal_states.append(current_state[2])
+                        steps += 1
+                    
+                    print("Returned to start successfully!")
+                    break
+                else:
+                    print("Could not find path back to start.")
+                    break
 
             action = pi.get(current_state)
             if action is None:
+                print("No policy action found. Stopping.")
                 break
                 
             # Get next state and reward
@@ -77,18 +120,23 @@ def run_rl_demo(cfg):
             for idx, goal_pos in enumerate(mdp.goal_positions):
                 if goal_pos in sim_gw.goal_cells:
                     sim_gw.goal_cells[goal_pos] = goals[idx]
-                    if goals[idx] == 0:
-                        sim_gw.grid[goal_pos] = 0
+                    # Keep the grid cell marked as goal (2) even when empty
+                    # The visualization will handle showing it differently
             
             current_state = next_state
             path.append(current_state[0])
+            carried_items.append(current_state[1])  # Track carried items
+            goal_states.append(current_state[2])  # Track goal states
             steps += 1
         
         print(f"Path length: {len(path)}")
         animate_path(sim_gw, path, 
                     fps=cfg.get("render_fps", 4),
                     step_delay=cfg.get("step_delay", 0.3),
-                    rewards=rewards)  # Pass rewards to visualization
+                    rewards=rewards,
+                    carried_items=carried_items,
+                    goal_states=goal_states,
+                    mdp=mdp)  # Pass goal states and mdp to visualization
 
     print("Demo finished.")
 
