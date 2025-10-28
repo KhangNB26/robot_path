@@ -29,21 +29,21 @@ def run_rl_demo(cfg):
     set_seed(cfg.get("random_seed", None))
     
     # Create gridworld
-    gw = GridWorld(size=cfg.get("grid_size",10),
-                  num_goal_cells=cfg.get("num_goal_cells",5), # Reduced for RL
-                  items_per_goal=cfg.get("items_per_goal",3),
-                  obstacle_prob=cfg.get("obstacle_prob", 0.1),
+    gw = GridWorld(size=cfg.get("grid_size"),
+                  num_goal_cells=cfg.get("num_goal_cells"), # Reduced for RL
+                  items_per_goal=cfg.get("items_per_goal"),
+                  obstacle_prob=cfg.get("obstacle_prob"),
                   seed=cfg.get("random_seed", None))
     
     print("Start:", gw.start)
     print("Goals:", list(gw.goal_cells.items())[:6], " total items:", gw.goals_remaining())
 
     # Create MDP model and run Value Iteration
-    mdp = SimpleMDPModel(gw, carry_capacity=cfg.get("carry_capacity",3))
+    mdp = SimpleMDPModel(gw, carry_capacity=cfg.get("carry_capacity"))
     vi = ValueIterationAgent(mdp, 
-                           gamma=cfg.get("gamma", 0.99),
-                           theta=cfg.get("theta", 1e-3),
-                           max_iters=cfg.get("max_iters", 1000))
+                           gamma=cfg.get("gamma"),
+                           theta=cfg.get("theta"),
+                           max_iters=cfg.get("max_iters"))
 
     # Initial state: (position, items carried, goal states)
     goals_state = tuple([gw.items_per_goal]*len(mdp.goal_positions))
@@ -62,7 +62,7 @@ def run_rl_demo(cfg):
         carried_items = [current_state[1]]  # Track items carried at each step
         goal_states = [current_state[2]]  # Track goal states at each step
         steps = 0
-        max_steps = cfg.get("max_steps", 500)
+        max_steps = cfg.get("max_steps")
         
         # Create a copy of gridworld for simulation
         sim_gw = gw.copy()
@@ -131,8 +131,8 @@ def run_rl_demo(cfg):
         
         print(f"Path length: {len(path)}")
         animate_path(sim_gw, path, 
-                    fps=cfg.get("render_fps", 4),
-                    step_delay=cfg.get("step_delay", 0.3),
+                    fps=cfg.get("render_fps"),
+                    step_delay=cfg.get("step_delay"),
                     rewards=rewards,
                     carried_items=carried_items,
                     goal_states=goal_states,
