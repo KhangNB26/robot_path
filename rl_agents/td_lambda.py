@@ -6,7 +6,7 @@ from collections import defaultdict
 import random
 
 class TDLambdaAgent:
-    def __init__(self, mdp_model, alpha=0.1, gamma=0.99, lam=0.8, episodes=1000, max_steps=500, policy=None):
+    def __init__(self, mdp_model, alpha, gamma, lam, episodes, max_steps, policy=None):
         self.mdp = mdp_model
         self.alpha = alpha
         self.gamma = gamma

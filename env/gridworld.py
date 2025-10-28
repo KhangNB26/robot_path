@@ -13,7 +13,7 @@ from utils import neighbors4, set_seed
 import random
 
 class GridWorld:
-    def __init__(self, size=10, num_goal_cells=10, items_per_goal=5, obstacle_prob=0.12, seed=None):
+    def __init__(self, size, num_goal_cells, items_per_goal, obstacle_prob, seed=None):
         self.size = size
         self.num_goal_cells = num_goal_cells
         self.items_per_goal = items_per_goal

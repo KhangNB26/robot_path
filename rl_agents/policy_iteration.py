@@ -5,7 +5,7 @@ Simple policy iteration on small explored state-set starting from start state
 from collections import defaultdict
 
 class PolicyIterationAgent:
-    def __init__(self, mdp_model, gamma=0.99, max_iters=100):
+    def __init__(self, mdp_model, gamma, max_iters):
         self.mdp = mdp_model
         self.gamma = gamma
         self.max_iters = max_iters

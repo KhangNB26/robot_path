@@ -3,6 +3,8 @@ import time
 import random
 import numpy as np
 from functools import wraps
+from contextlib import contextmanager
+
 
 def timer(func):
     @wraps(func)
@@ -12,6 +14,13 @@ def timer(func):
         t1 = time.perf_counter()
         return res, (t1 - t0)
     return wrapper
+
+@contextmanager
+def timing(description: str):
+    start = time.perf_counter()
+    yield
+    elapsed = time.perf_counter() - start
+    print(f"{description}: {elapsed:.3f} seconds")
 
 def neighbors4(pos, grid_shape):
     r, c = pos

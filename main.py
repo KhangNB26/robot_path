@@ -12,8 +12,15 @@ from env.gridworld import GridWorld
 from visualization.pygame_viz import animate_path
 from mdp.mdp_model import SimpleMDPModel
 from rl_agents.value_iteration import ValueIterationAgent
+from rl_agents.policy_iteration import PolicyIterationAgent
+from rl_agents.q_learning import QLearningAgent
+from rl_agents.sarsa import SarsaAgent
+from rl_agents.td0 import TD0Agent
+from rl_agents.td_lambda import TDLambdaAgent
 from planners.bfs import bfs_grid
-from utils import set_seed
+from utils import set_seed, timer, timing 
+import time
+import csv 
 
 def load_config(path=None):
     if path is None:
@@ -23,6 +30,43 @@ def load_config(path=None):
     with open(path,"r",encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
     return cfg
+
+def create_agent(agent_type, mdp, cfg):
+    """Create RL agent based on type and config"""
+    gamma = cfg.get("gamma")
+    theta = cfg.get("theta")
+    max_iters = cfg.get("max_iters")
+    # max_states = cfg.get("max_states")
+    max_steps = cfg.get("max_steps")
+    alpha = cfg.get("alpha")
+    epsilon = cfg.get("epsilon")
+    episodes = cfg.get("episodes")
+    # epsilon_decay = cfg.get("epsilon_decay")
+    lam = cfg.get("lam")
+
+    if agent_type == "value_iteration":
+        return ValueIterationAgent(mdp, gamma, theta, max_iters)
+    elif agent_type == "policy_iteration":
+        return PolicyIterationAgent(mdp, gamma, max_iters)
+    elif agent_type == "q_learning":
+        return QLearningAgent(mdp, alpha, gamma, epsilon, episodes, max_steps)
+    elif agent_type == "sarsa":
+        return SarsaAgent(mdp, alpha, gamma, epsilon, episodes, max_steps)
+    elif agent_type == "td0":
+        return TD0Agent(mdp, alpha, gamma, episodes, max_steps)
+    elif agent_type == "td_lambda":
+        return TDLambdaAgent(mdp, alpha, gamma, lam, episodes, max_steps)
+    else:
+        raise ValueError(f"Unknown agent type: {agent_type}")
+    
+def display_menu(agents):
+    """Display menu for agent selection"""
+    print("\nAvailable Agents:")
+    print("================")
+    for idx, agent in enumerate(agents, 1):
+        print(f"{idx}. {agent.replace('_', ' ').title()}")
+    print("0. Exit")
+
 
 def run_rl_demo(cfg):
     # Set random seed
@@ -40,19 +84,47 @@ def run_rl_demo(cfg):
 
     # Create MDP model and run Value Iteration
     mdp = SimpleMDPModel(gw, carry_capacity=cfg.get("carry_capacity"))
-    vi = ValueIterationAgent(mdp, 
-                           gamma=cfg.get("gamma"),
-                           theta=cfg.get("theta"),
-                           max_iters=cfg.get("max_iters"))
 
-    # Initial state: (position, items carried, goal states)
+    # Agent selection menu
+    available_agents = cfg.get("agents", {}).get("available", ["value_iteration"])
+    default_agent = cfg.get("agents", {}).get("default", "value_iteration")
+    
+    while True:
+        display_menu(available_agents)
+        choice = input(f"\nSelect agent (1-{len(available_agents)}, default={default_agent}): ").strip()
+        
+        if choice == "0":
+            print("Exiting...")
+            return
+        elif choice == "":
+            agent_name = default_agent
+            break
+        elif choice.isdigit() and 1 <= int(choice) <= len(available_agents):
+            agent_name = available_agents[int(choice)-1]
+            break
+        else:
+            print("Invalid choice. Please try again.")
+
+    print(f"\nSelected agent: {agent_name.replace('_', ' ').title()}")
+    
+    # Create selected agent
+    agent = create_agent(agent_name, mdp, cfg)
+    
+    # Initial state
     goals_state = tuple([gw.items_per_goal]*len(mdp.goal_positions))
     start_state = (gw.start, 0, goals_state)
     
-    # Run value iteration
-    print("Running Value Iteration...")
-    pi, V = vi.run(start_state)
-    print(f"Value iteration complete. Policy size: {len(pi)}")
+    # Run agent
+    print(f"\nRunning {agent_name.replace('_', ' ').title()}...")
+    with timing(f"{agent_name} execution"):
+        start_time = time.perf_counter()
+        pi, V = agent.run(start_state)
+        elapsed_time = time.perf_counter() - start_time
+        # Check policy type and print appropriate message
+    if isinstance(pi, dict):
+        print(f"Training complete. Policy size: {len(pi)}")
+    else:
+        print("Training complete. Using function-based policy")
 
     # Generate path using policy
     if cfg.get("visualize", True):
@@ -106,10 +178,14 @@ def run_rl_demo(cfg):
                     print("Could not find path back to start.")
                     break
 
-            action = pi.get(current_state)
-            if action is None:
-                print("No policy action found. Stopping.")
-                break
+            # Get action from policy (handle both dictionary and function policies)
+            if isinstance(pi, dict):
+                action = pi.get(current_state)
+                if action is None:
+                    print("No policy action found. Stopping.")
+                    break
+            else:
+                action = pi(current_state)
                 
             # Get next state and reward
             next_state, reward = mdp.step(current_state, action)
@@ -137,7 +213,19 @@ def run_rl_demo(cfg):
                     carried_items=carried_items,
                     goal_states=goal_states,
                     mdp=mdp)  # Pass goal states and mdp to visualization
+    
+    log_path = "results/rl_metrics.csv"
+    os.makedirs("results", exist_ok=True)
 
+    file_exists = os.path.isfile(log_path)
+
+    with open(log_path, "a", newline="") as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(["agent", "total_reward", "total_steps", "time_execution"])
+        writer.writerow([agent_name, sum(rewards), steps, elapsed_time])
+
+    print(f"\nLogged results to {log_path}")
     print("Demo finished.")
 
 if __name__ == "__main__":

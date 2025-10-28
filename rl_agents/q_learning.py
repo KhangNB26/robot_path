@@ -3,7 +3,7 @@ import random
 from collections import defaultdict
 
 class QLearningAgent:
-    def __init__(self, mdp_model, alpha=0.5, gamma=0.99, epsilon=0.1, episodes=2000, max_steps=500):
+    def __init__(self, mdp_model, alpha, gamma, epsilon, episodes, max_steps):
         self.mdp = mdp_model
         self.alpha = alpha
         self.gamma = gamma

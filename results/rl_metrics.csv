@@ -1,0 +1,3 @@
+agent,total_reward,total_steps,time_execution
+value_iteration,168.0,102,6.032484999999724
+policy_iteration,168.0,102,15.35737369999697
