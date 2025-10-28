@@ -14,7 +14,7 @@ max_iters: 1000    # Maximum iterations for value iteration
 visualize: true
 render_fps: 2
 step_delay: 1.0
-max_steps: 100
+max_steps: 500  # Increased to allow robot to complete task
 
 # Other
 random_seed: 0
