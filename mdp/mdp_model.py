@@ -12,7 +12,7 @@ from collections import OrderedDict
 from utils import neighbors4, manhattan
 
 class SimpleMDPModel:
-    def __init__(self, gridworld, carry_capacity=3):
+    def __init__(self, gridworld, carry_capacity):
         """
         Build a model of the environment for tabular RL:
         - states: all combinations of robot pos and distribution of remaining items per goal

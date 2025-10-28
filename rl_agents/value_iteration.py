@@ -7,7 +7,7 @@ import math
 from collections import defaultdict
 
 class ValueIterationAgent:
-    def __init__(self, mdp_model, gamma=0.99, theta=1e-3, max_iters=5000):
+    def __init__(self, mdp_model, gamma, theta, max_iters):
         self.mdp = mdp_model
         self.gamma = gamma
         self.theta = theta
@@ -65,7 +65,7 @@ class ValueIterationAgent:
                     
             self.pi[state] = best_action
 
-    def run(self, start_state, max_steps=10000):
+    def run(self, start_state):
         self.value_iteration()
         self.extract_policy()
         return self.pi, self.V

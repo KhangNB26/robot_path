@@ -1,20 +1,38 @@
 # Grid parameters
 grid_size: 10        # Grid size for RL
 num_goal_cells: 3   # Num goals for RL
-items_per_goal: 2    # Items per goal cell
+items_per_goal: 3    # Items per goal cell
 obstacle_prob: 0.1
 
 # RL parameters
-carry_capacity: 1  # Max items robot can carry
+carry_capacity: 2  # Max items robot can carry
 gamma: 0.99        # Discount factor
 theta: 0.001       # Convergence threshold
 max_iters: 1000    # Maximum iterations for value iteration
+max_states: 20000  # Increased to accommodate larger state space
+max_steps: 500  # Maximum steps per episode
+alpha: 0.5         # Learning rate for Q-learning
+epsilon: 0.1       # Exploration rate for Q-learning
+epsilon_decay: 0.99 # Decay rate for epsilon
+episodes: 2000     # Number of episodes for Q-learning
+lam: 0.8       # Lambda parameter for TD(lambda)
 
 # Visualization
 visualize: true
 render_fps: 2
 step_delay: 1.0
 max_steps: 500  # Increased to allow robot to complete task
+
+# RL Agents
+agents:
+  available:
+    - value_iteration
+    - policy_iteration
+    - q_learning
+    - sarsa
+    - td0
+    - td_lambda
+  default: value_iteration
 
 # Other
 random_seed: 0

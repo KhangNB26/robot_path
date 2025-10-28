@@ -65,7 +65,7 @@ def animate_path(gw, path, fps=2, title="Robot", step_delay=5.0, rewards=None, c
     rows, cols = gw.grid.shape
     cellsize = CELL
     width = cols * (cellsize + MARGIN) + MARGIN
-    height = rows * (cellsize + MARGIN) + MARGIN + 60
+    height = rows * (cellsize + MARGIN) + MARGIN + 120
     screen = pygame.display.set_mode((width, height))
     pygame.display.set_caption(title)
     clock = pygame.time.Clock()
@@ -89,6 +89,7 @@ def animate_path(gw, path, fps=2, title="Robot", step_delay=5.0, rewards=None, c
                 running = False
 
         screen.fill(COLORS['bg'])
+        # pygame.draw.rect(screen, (0, 0, 0), (0, height - 100, width, 100))
         
         # Update goal cells for current step if goal_states provided
         if goal_states and mdp and step < len(goal_states):
@@ -161,7 +162,7 @@ def animate_path(gw, path, fps=2, title="Robot", step_delay=5.0, rewards=None, c
         # Draw info text
         for i, line in enumerate(info_lines):
             txt = font.render(line, True, COLORS['text'])
-            screen.blit(txt, (10, height-80 + i*18))
+            screen.blit(txt, (10, height - 95 + i * 16))
 
         pygame.display.flip()
         step += 1

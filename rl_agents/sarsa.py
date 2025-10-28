@@ -1,38 +1,74 @@
 # rl_agents/sarsa.py
 import random
+import numpy as np
 from collections import defaultdict
 
 class SarsaAgent:
-    def __init__(self, mdp_model, alpha=0.5, gamma=0.99, epsilon=0.1, episodes=2000, max_steps=500):
+    def __init__(self, mdp_model, alpha, gamma, epsilon, episodes, max_steps):
         self.mdp = mdp_model
-        self.alpha = alpha
-        self.gamma = gamma
-        self.epsilon = epsilon
+        self.alpha = alpha  # learning rate
+        self.gamma = gamma  # discount factor
+        self.epsilon = epsilon  # exploration rate
         self.episodes = episodes
         self.max_steps = max_steps
-        self.Q = defaultdict(lambda: {a:0.0 for a in self.mdp.actions})
-
+        # Initial Q-values with optimistic initialization
+        self.Q = defaultdict(lambda: {a: 1.0 for a in self.mdp.actions})
+        self.episode_rewards = []  # Track rewards per episode
+        
     def choose_action(self, state):
-        import random
+        """Epsilon-greedy action selection"""
         if random.random() < self.epsilon:
             return random.choice(self.mdp.actions)
         else:
+            # Break ties randomly for better exploration
             qvals = self.Q[state]
-            return max(qvals.items(), key=lambda kv: kv[1])[0]
+            max_q = max(qvals.values())
+            best_actions = [a for a, q in qvals.items() if q == max_q]
+            return random.choice(best_actions)
 
     def run(self, start_state):
+        """Run SARSA algorithm"""
+        print(f"Starting SARSA training for {self.episodes} episodes...")
+        
         for ep in range(self.episodes):
             state = start_state
-            a = self.choose_action(state)
+            action = self.choose_action(state)  # Choose A from S using policy
+            episode_reward = 0
+            
             for t in range(self.max_steps):
-                ns, r = self.mdp.step(state, a)
-                a2 = self.choose_action(ns)
-                self.Q[state][a] += self.alpha * (r + self.gamma * self.Q[ns][a2] - self.Q[state][a])
-                state, a = ns, a2
-                if self.mdp.is_terminal(state[2]):
+                # Take action, observe R, S'
+                next_state, reward = self.mdp.step(state, action)
+                episode_reward += reward
+                
+                if self.mdp.is_terminal(next_state[2]):
+                    # Terminal state update
+                    self.Q[state][action] += self.alpha * (reward - self.Q[state][action])
                     break
-        pi = {}
-        for s, actions in self.Q.items():
-            best = max(actions.items(), key=lambda kv: kv[1])[0]
-            pi[s] = best
-        return pi, self.Q
+                else:
+                    # Choose A' from S' using policy
+                    next_action = self.choose_action(next_state)
+                    
+                    # SARSA update
+                    self.Q[state][action] += self.alpha * (
+                        reward + 
+                        self.gamma * self.Q[next_state][next_action] - 
+                        self.Q[state][action]
+                    )
+                    
+                    # Move to next state
+                    state, action = next_state, next_action
+            
+            self.episode_rewards.append(episode_reward)
+            
+            # Print progress
+            if (ep + 1) % (self.episodes // 10) == 0:
+                avg_reward = np.mean(self.episode_rewards[-100:])
+                print(f"Episode {ep+1}/{self.episodes} - Avg Reward: {avg_reward:.2f}")
+
+        # Create deterministic policy from Q-values
+        policy = {}
+        for state, actions in self.Q.items():
+            best_action = max(actions.items(), key=lambda x: x[1])[0]
+            policy[state] = best_action
+
+        return policy, self.Q
