@@ -72,10 +72,15 @@ def animate_path(gw, path, fps=2, title="Robot", step_delay=5.0, rewards=None, c
     running = True
     step = 0
     total_reward = 0
-    initial_items = sum(gw.goal_cells.values())  # Track initial total items
+    
+    # Calculate initial items from goal_states if available, otherwise from gridworld
+    if goal_states and len(goal_states) > 0:
+        initial_items = sum(goal_states[0])  # Sum of initial goal state
+    else:
+        initial_items = sum(gw.goal_cells.values())  # Track initial total items
+    
     remaining_items = initial_items  # Track remaining items
     items_delivered = 0  # Track items actually delivered to start
-    prev_carried = 0  # Track previous carried to detect delivery
 
     while running:
         clock.tick(fps)
@@ -130,19 +135,18 @@ def animate_path(gw, path, fps=2, title="Robot", step_delay=5.0, rewards=None, c
             current_reward = rewards[step-1]
             total_reward += current_reward
             
-        # Calculate remaining items on map
-        remaining_items = sum(gw.goal_cells.values())
+        # Calculate remaining items on map from goal_states
+        if goal_states and step < len(goal_states):
+            remaining_items = sum(goal_states[step])
+        else:
+            remaining_items = sum(gw.goal_cells.values())
         
-        # Get current carried items
+        # Calculate items delivered (initial - remaining - currently carried)
         current_carried = 0
         if carried_items and step < len(carried_items):
             current_carried = carried_items[step]
-            
-            # Detect delivery: if robot was carrying items and now carries less, and is at start
-            if step > 0 and path[step] == gw.start:
-                prev_carried = carried_items[step-1]
-                if prev_carried > current_carried:
-                    items_delivered += (prev_carried - current_carried)
+        
+        items_delivered = initial_items - remaining_items - current_carried
 
         # Update display information
         info_lines = [
